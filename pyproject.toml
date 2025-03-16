@@ -1,5 +1,5 @@
 [project]
-name = "dataanalyse"
+name = "stocks"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,6 +8,7 @@ dependencies = [
     "black>=25.1.0",
     "duckdb>=1.2.1",
     "matplotlib>=3.10.1",
+    "psycopg[binary]>=3.2.6",
     "pyarrow>=19.0.1",
     "yfinance>=0.2.54",
 ]

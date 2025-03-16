@@ -1,4 +1,8 @@
 *.csv
 *.duckdb
+*.egg-info/
 *.parquet
 *.png
+.venv/
+__pycache__/
+env.zsh
