@@ -7,15 +7,15 @@ import duckdb
 PREFIX = "crypto"
 
 
-def extract(start: str = "2010-01-01", symbol: str = "BTC-EUR") -> pd.DataFrame:
+def extract(start: str = "2023-01-01", symbol: str = "BTC-EUR") -> pd.DataFrame:
     data = yf.Ticker(symbol)
-    df = data.history(start=start, interval="1d")
+    df = data.history(start=start, interval="1h")
     return df
 
 
 def transform(df: pd.DataFrame, symbol: str = "BTC-EUR") -> pd.DataFrame:
     df = df.reset_index()
-    df = df.set_index("Date")
+    df = df.set_index("Datetime")
     df["symbol"] = symbol
     return df
 
@@ -29,8 +29,8 @@ def load(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    df = extract(start="2010-01-01")
-    df = transform(df)
+    df = extract(start="2023-04-01")
+    df = transform(df, symbol="btc")
     print(df)
     load(df)
 

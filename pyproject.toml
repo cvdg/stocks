@@ -10,5 +10,6 @@ dependencies = [
     "matplotlib>=3.10.1",
     "psycopg[binary]>=3.2.6",
     "pyarrow>=19.0.1",
+    "sqlalchemy>=2.0.39",
     "yfinance>=0.2.54",
 ]

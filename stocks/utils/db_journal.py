@@ -1,4 +1,3 @@
-import datetime
 import psycopg
 
 __VERSION__ = "0.0.1"
