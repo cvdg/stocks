@@ -8,20 +8,32 @@ from stocks.utils.db_value import db_values_exist, db_values_get, db_values_set
 from stocks.utils.db_journal import db_journal_info
 
 
-def extract_btc(connection, start: str, end: str) -> None:
+def extract_btc(connection, start: str, end: str) -> bool:
+    key_end = "btc-end-date"
     data = yf.Ticker("BTC-EUR")
     df = data.history(start=start, end=end, interval="1h")
-    df.reset_index(inplace=True)
-    df.rename(columns={"Datetime": "datetime", "Stock Splits": "splits"}, inplace=True)
-    df.set_index("datetime", inplace=True)
-    df["symbol"] = "btc"
-    df.rename(str.lower, axis="columns", inplace=True)
-    # print(df)
-    df.to_sql(name="stocks", con=connection, if_exists="append")
+    rows = len(df)
+    if rows:
+        df.reset_index(inplace=True)
+        df.rename(
+            columns={"Datetime": "datetime", "Stock Splits": "splits"}, inplace=True
+        )
+        df.rename(str.lower, axis="columns", inplace=True)
+        df.set_index("datetime", inplace=True)
+        df["symbol"] = "btc"
+        df.to_sql(name="stocks", con=connection, if_exists="append")
+
+        db_values_set(key_end, end)
+        db_journal_info(f"Fetched BTC to: {end} - rows: {rows}")
+        logger.info(f"Fetched BTC to: {end} - rows: {rows}")
+    else:
+        db_journal_info(f"Fetched no rows")
+        logger.info(f"Fetched no rows")
+    return rows > 0
 
 
-def btc(connection) -> bool:
-    not_done = True
+def btc(connection) -> None:
+    stop = False
     key_start = "btc-start-date"
     key_end = "btc-end-date"
 
@@ -36,14 +48,11 @@ def btc(connection) -> bool:
 
     if date_end > date_now:
         date_end = date_now
-        not_done = False
+        stop = True
     string_end = date_end.isoformat()
 
-    extract_btc(connection, string_start, string_end)
-    db_values_set(key_end, string_end)
-    db_journal_info(f"Fetched BTC to: {string_end}")
-    logger.info(f"Fetched BTC to: {string_end}")
-    return not_done
+    while not stop:
+        stop = extract_btc(connection, string_start, string_end)
 
 
 if __name__ == "__main__":
@@ -63,17 +72,14 @@ if __name__ == "__main__":
 
         uri = os.getenv("STOCKS_DATABASE_URI")
 
+        # For: psycopg3
         db_journal_setup(f"postgresql://{uri}")
         db_value_setup(f"postgresql://{uri}")
         db_stock_setup(f"postgresql://{uri}")
 
+        # For: SQLAlchemy
         engine = create_engine(f"postgresql+psycopg://{uri}")
-
-        # btc(engine)
-
-        while btc(engine):
-            pass
-
+        btc(engine)
         logger.info("Finished")
     except Exception as e:
         logger.exception(e)
