@@ -1,7 +1,6 @@
 *.csv
 *.duckdb
 *.egg-info/
-*.parquet
 *.png
 .venv/
 __pycache__/
