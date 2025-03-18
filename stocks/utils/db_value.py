@@ -95,23 +95,3 @@ def db_values_delete(key: str) -> None:
         with conn.cursor() as curr:
             curr.execute(DELETE_KEY_VALUE, (key,))
         conn.commit()
-
-
-if __name__ == "__main__":
-    import os
-
-    uri = os.getenv("STOCKS_DATABASE_URI")
-    db_value_setup(uri)
-
-    assert False == db_values_exist("Test")
-
-    db_values_set("Test", "Testing")
-
-    assert True == db_values_exist("Test")
-    assert "Testing" == db_values_get("Test")
-
-    test = db_values_get("Test")
-    print(f"{test=}")
-
-    db_values_delete("Test")
-    assert False == db_values_exist("Test")

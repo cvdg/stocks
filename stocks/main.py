@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import logging
 import os
-import pprint
 
 import yfinance as yf
 from sqlalchemy import create_engine
@@ -16,6 +15,9 @@ from stocks.utils.db_journal import db_journal_setup, db_journal_info
 from stocks.utils.db_stock import db_stock_setup, insert_or_do_nothing_on_conflict
 
 
+logger = logging.getLogger(__name__)
+
+
 def extract(engine, symbol: str, yfinance_symbol: str, start: str, end: str) -> bool:
     if start == end:
         return True
@@ -23,6 +25,7 @@ def extract(engine, symbol: str, yfinance_symbol: str, start: str, end: str) -> 
     key_end = f"{symbol}-end-date"
     data = yf.Ticker(yfinance_symbol)
     df = data.history(start=start, end=end, interval="1d")
+    df.drop(columns=['Capital Gains'], errors='ignore', inplace=True)
     # print(df)
     # return True
     rows = len(df)
@@ -70,10 +73,6 @@ def stock(enfine, symbol: str, yfinance_symbol: str) -> None:
 
 
 if __name__ == "__main__":
-    import os
-
-    logger = logging.getLogger(__name__)
-
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s %(message)s",
@@ -94,11 +93,11 @@ if __name__ == "__main__":
         engine = create_engine(f"postgresql+psycopg://{uri}")
 
         stock(engine, "aex", "^AEX")
-
+        stock(engine, "EURgovernment", "IBGS.AS")
         stock(engine, "rheinmetal", "RHM.DE")
         stock(engine, "airbus", "AIR.PA")
         stock(engine, "thales", "HO.PA")
-
+        
         stock(engine, "btc", "BTC-EUR")
 
         logger.info("Finished")

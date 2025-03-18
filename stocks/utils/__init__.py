@@ -14,4 +14,4 @@ from stocks.utils.db_journal import (
     db_journal_debug,
     db_journal_trace,
 )
-from stocks.utils.db_stock import db_stock_setup
+from stocks.utils.db_stock import db_stock_setup, insert_or_do_nothing_on_conflict
