@@ -27,6 +27,17 @@ CREATE TABLE IF NOT EXISTS daily (
 CREATE_PORTFOLIO_TABLE = """
 CREATE TABLE IF NOT EXISTS portfolio (
     day          DATE         NOT NULL,
+    symbol       VARCHAR(128) NOT NULL,
+    shares       REAL         NOT NULL,
+    value        REAL         NOT NULL,
+    costs        REAL         NOT NULL,
+    UNIQUE (day, symbol)
+);
+"""
+
+CREATE_TRANSACTIONS_TABLE = """
+CREATE TABLE IF NOT EXISTS transactions (
+    day          DATE         NOT NULL,
     action       VARCHAR(16)  NOT NULL,
     symbol       VARCHAR(128) NOT NULL,
     shares       REAL         NOT NULL,
@@ -44,6 +55,7 @@ def db_stock_setup(uri: str) -> None:
     with psycopg.connect(uri) as conn:
         with conn.cursor() as curr:
             curr.execute(CREATE_STOCKS_TABLE)
+            curr.execute(CREATE_TRANSACTIONS_TABLE)
             curr.execute(CREATE_PORTFOLIO_TABLE)
         conn.commit()
     __stocks_uri = uri

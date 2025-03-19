@@ -65,10 +65,16 @@ def portfolio_sell(
 def portfolio_start_date(uri: str) -> date:
     with psycopg.connect(uri) as conn:
         with conn.cursor() as curr:
-            curr.execute("SELECT MIN(day) FROM portfolio")
+            curr.execute("SELECT MIN(day) FROM transactions")
             result = curr.fetchone()
             start_date = result[0]
+            curr.execute("SELECT MAX(day) FROM portfolio")
+            result = curr.fetchone()
+            if result:
+                current_date = result[0]
         conn.commit()
+        if current_date > start_date:
+            start_date = current_date
     return start_date
 
 
@@ -78,12 +84,13 @@ def portfolio(uri: str) -> None:
     date_range = pd.date_range(start_date, today_date, freq="D")
     for d in date_range:
         total_value = 0.0
-        total_cost = 0.0
+        total_costs = 0.0
         day = d.strftime("%Y-%m-%d")
         with psycopg.connect(uri) as conn:
             with conn.cursor() as curr:
+                # For each day calculate the number of stocks
                 curr.execute(
-                    "SELECT symbol, SUM(shares), SUM(price) FROM portfolio WHERE day <= %s GROUP BY symbol ORDER BY symbol",
+                    "SELECT symbol, SUM(shares), SUM(price) FROM transactions WHERE day <= %s GROUP BY symbol ORDER BY symbol",
                     (day,),
                 )
                 rows = curr.fetchall()
@@ -91,7 +98,8 @@ def portfolio(uri: str) -> None:
                 for row in rows:
                     symbol = row[0]
                     shares = row[1]
-                    cost  = row[2]
+                    costs = row[2]
+                    # Find the last known close price
                     curr.execute(
                         "SELECT close FROM daily WHERE day <= %s AND symbol = %s ORDER BY day DESC LIMIT 1",
                         (
@@ -101,14 +109,49 @@ def portfolio(uri: str) -> None:
                     )
                     result = curr.fetchone()
                     if result:
-                        price = result[0]
-                        print(f"{day} - {symbol}: {shares} - {shares * price:.02f} ({100 * shares * price / cost:.01f}%)")
-                        total_value += shares * price
-                        total_cost += cost
+                        value = result[0] * shares
+                        print(
+                            f"{day} - {symbol}: {shares} - {value:.2f} ({100 * value / costs:.1f}%)"
+                        )
+                        total_value += value
+                        total_costs += costs
+                        # Does record exists?
+                        curr.execute(
+                            "SELECT day, symbol FROM portfolio WHERE day = %s AND symbol = %s",
+                            (
+                                day,
+                                symbol,
+                            ),
+                        )
+                        exists = curr.fetchone()
+                        if exists:
+                            curr.execute(
+                                "UPDATE portfolio SET shares = %s, value = %s, costs = %s WHERE day = %s AND symbol = %s",
+                                (
+                                    shares,
+                                    value,
+                                    costs,
+                                    day,
+                                    symbol,
+                                ),
+                            )
+                        else:
+                            curr.execute(
+                                "INSERT INTO portfolio (day, symbol, shares, value, costs) VALUES (%s, %s, %s, %s, %s)",
+                                (
+                                    day,
+                                    symbol,
+                                    shares,
+                                    value,
+                                    costs,
+                                ),
+                            )
                     else:
                         print(f"{day} - {symbol}: {shares}")
             conn.commit()
-        print(f"{day} - TOTAL: {total_value:0.2f} ({100 * total_value / total_cost:.01f}%)")
+        print(
+            f"{day} - TOTAL: {total_value:0.1f} ({100 * total_value / total_costs:.1f}%)"
+        )
 
 
 if __name__ == "__main__":
