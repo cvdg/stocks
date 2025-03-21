@@ -119,7 +119,7 @@ if __name__ == "__main__":
             "STOCKS_DATABASE_URL",
             "postgresql://test:test@database01.griend.dev:5432/test",
         )
- 
+
         symbols = stocks(url=url)
         for symbol in symbols:
             tickers(url=url, symbol=symbol)
