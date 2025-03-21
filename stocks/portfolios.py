@@ -1,11 +1,9 @@
 from datetime import date, timedelta
 import logging
+import os
 
 import psycopg
 
-
-# URL = "postgresql+psycopg://test:test@database01.griend.dev:5432/test"
-URL = "postgresql://test:test@database01.griend.dev:5432/test"
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +55,7 @@ SET portfolio_date  = excluded.portfolio_date,
 def portfolios(url: str, start: str = "2025-02-18") -> None:
     current_date = date.fromisoformat(start)
     today_date = date.today()
-    with psycopg.connect(URL) as conn:
+    with psycopg.connect(url) as conn:
         while current_date <= today_date:
             day = current_date.isoformat()
 
@@ -117,8 +115,11 @@ if __name__ == "__main__":
     try:
         logger.info("Started")
 
-        start = (date.today() - timedelta(days = 7)).isoformat()
-        portfolios(url=URL, start=start)
+        url = os.getenv(
+            "STOCKS_DATABASE_URL",
+            "postgresql://test:test@database01.griend.dev:5432/test",
+        )
+        portfolios(url=url)
 
         logger.info("Finished")
     except Exception as e:

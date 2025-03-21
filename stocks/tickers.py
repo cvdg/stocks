@@ -1,20 +1,18 @@
 from datetime import date, timedelta
 import logging
+import os
 from typing import List
 
 import psycopg
 import yfinance as yf
 
 
-# URL = "postgresql+psycopg://test:test@database01.griend.dev:5432/test"
-URL = "postgresql://test:test@database01.griend.dev:5432/test"
-
 logger = logging.getLogger(__name__)
 
 
 def stocks(url: str) -> List[str]:
     symbols = []
-    with psycopg.connect(URL) as conn:
+    with psycopg.connect(url) as conn:
         with conn.cursor() as curr:
             curr.execute(
                 "SELECT stock_symbol FROM stocks WHERE stock_active = TRUE ORDER BY stock_id"
@@ -31,7 +29,7 @@ def stocks(url: str) -> List[str]:
 
 
 def __get_stock_id(url: str, symbol: str) -> None:
-    with psycopg.connect(URL) as conn:
+    with psycopg.connect(url) as conn:
         with conn.cursor() as curr:
             curr.execute(
                 "SELECT stock_id FROM stocks WHERE stock_symbol = %s", (symbol,)
@@ -50,7 +48,7 @@ def __tickers_upsert(row, url: str, symbol: str, stock_id: int) -> None:
     Slow!
     For each row a new connection is made and a commit is done.
     """
-    with psycopg.connect(URL) as conn:
+    with psycopg.connect(url) as conn:
         with conn.cursor() as curr:
             day = row["Date"].date().isoformat()
             open = float(row["Open"])
@@ -117,11 +115,14 @@ if __name__ == "__main__":
     try:
         logger.info("Started")
 
-        start = (date.today() - timedelta(days=7)).isoformat()
-        symbols = stocks(url=URL)
-
+        url = os.getenv(
+            "STOCKS_DATABASE_URL",
+            "postgresql://test:test@database01.griend.dev:5432/test",
+        )
+ 
+        symbols = stocks(url=url)
         for symbol in symbols:
-            tickers(url=URL, start=start, symbol=symbol)
+            tickers(url=url, symbol=symbol)
 
         logger.info("Finished")
     except Exception as e:

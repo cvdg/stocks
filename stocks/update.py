@@ -1,15 +1,10 @@
 from datetime import date, timedelta
 import logging
-from typing import List
-
-import psycopg
-import yfinance as yf
+import os
 
 from stocks.tickers import stocks, tickers
 from stocks.portfolios import portfolios
 
-# URL = "postgresql+psycopg://test:test@database01.griend.dev:5432/test"
-URL = "postgresql://test:test@database01.griend.dev:5432/test"
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +20,15 @@ if __name__ == "__main__":
     try:
         logger.info("Started")
 
+        url = os.getenv(
+            "STOCKS_DATABASE_URL",
+            "postgresql://test:test@database01.griend.dev:5432/test",
+        )
         start = (date.today() - timedelta(days=7)).isoformat()
-        symbols = stocks(url=URL)
-
+        symbols = stocks(url=url)
         for symbol in symbols:
-            tickers(url=URL, start=start, symbol=symbol)
-            
-        portfolios(url=URL, start=start)
+            tickers(url=url, start=start, symbol=symbol)
+        portfolios(url=url, start=start)
 
         logger.info("Finished")
     except Exception as e:
