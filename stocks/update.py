@@ -1,0 +1,38 @@
+from datetime import date, timedelta
+import logging
+from typing import List
+
+import psycopg
+import yfinance as yf
+
+from stocks.tickers import stocks, tickers
+from stocks.portfolios import portfolios
+
+# URL = "postgresql+psycopg://test:test@database01.griend.dev:5432/test"
+URL = "postgresql://test:test@database01.griend.dev:5432/test"
+
+logger = logging.getLogger(__name__)
+
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    try:
+        logger.info("Started")
+
+        start = (date.today() - timedelta(days=7)).isoformat()
+        symbols = stocks(url=URL)
+
+        for symbol in symbols:
+            tickers(url=URL, start=start, symbol=symbol)
+            
+        portfolios(url=URL, start=start)
+
+        logger.info("Finished")
+    except Exception as e:
+        logger.exception(e)

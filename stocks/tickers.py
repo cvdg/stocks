@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import logging
 from typing import List
 
@@ -51,7 +52,7 @@ def __tickers_upsert(row, url: str, symbol: str, stock_id: int) -> None:
     """
     with psycopg.connect(URL) as conn:
         with conn.cursor() as curr:
-            day = row['Date'].date().isoformat()
+            day = row["Date"].date().isoformat()
             open = float(row["Open"])
             high = float(row["High"])
             low = float(row["Low"])
@@ -81,27 +82,27 @@ SET ticker_open      = excluded.ticker_open,
     ticker_dividends = excluded.ticker_dividends,
     ticker_splits    = excluded.ticker_splits
 """,
-                        (
-                            stock_id,
-                            day,
-                            open,
-                            high,
-                            low,
-                            close,
-                            volume,
-                            dividends,
-                            splits,
+                (
+                    stock_id,
+                    day,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                    dividends,
+                    splits,
                 ),
             )
             logger.info(f"Updated: date: {day}, symbol: {symbol}")
         conn.commit()
 
 
-def tickers(url: str, symbol: str) -> None:
+def tickers(url: str, symbol: str, start: str = "2020-01-01") -> None:
     """Fecth financial data from Yahoo Finance."""
-    stock_id = __get_stock_id(url, symbol)    
+    stock_id = __get_stock_id(url, symbol)
     data = yf.Ticker(symbol)
-    df = data.history(start="2020-01-01", interval="1d")
+    df = data.history(start=start, interval="1d")
     df.reset_index(inplace=True)
     df.apply(__tickers_upsert, axis=1, url=url, symbol=symbol, stock_id=stock_id)
 
@@ -116,9 +117,11 @@ if __name__ == "__main__":
     try:
         logger.info("Started")
 
+        start = (date.today() - timedelta(days=7)).isoformat()
         symbols = stocks(url=URL)
+
         for symbol in symbols:
-            tickers(url=URL, symbol=symbol)
+            tickers(url=URL, start=start, symbol=symbol)
 
         logger.info("Finished")
     except Exception as e:
