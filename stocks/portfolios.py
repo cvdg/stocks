@@ -44,8 +44,8 @@ INSERT INTO portfolios (
     portfolio_price,
     portfolio_value
 ) VALUES(%s, %s, %s, %s, %s, %s)
-ON CONFLICT (stock_id, ticker_id) DO UPDATE
-SET portfolio_date  = excluded.portfolio_date,
+ON CONFLICT (stock_id, portfolio_date) DO UPDATE
+SET ticker_id       = excluded.ticker_id,
     portfolio_share = excluded.portfolio_share,
     portfolio_price = excluded.portfolio_price,
     portfolio_value = excluded.portfolio_value
@@ -100,14 +100,14 @@ def portfolios(url: str, start: str = "2025-02-18") -> None:
                             value,
                         ),
                     )
-                    logger.info(f"Update portfolio day: {day } stock_id: {stock_id}")
+                    logger.info(f"Update portfolio day: {day} stock_id: {stock_id}")
             current_date += timedelta(days=1)
         conn.commit()
 
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
@@ -119,7 +119,7 @@ if __name__ == "__main__":
             "STOCKS_DATABASE_URL",
             "postgresql://test:test@database01.griend.dev:5432/test",
         )
-        portfolios(url=url)
+        portfolios(url=url, start="2025-03-21")
 
         logger.info("Finished")
     except Exception as e:

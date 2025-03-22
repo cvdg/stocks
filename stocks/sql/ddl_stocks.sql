@@ -62,6 +62,8 @@ CREATE TABLE IF NOT EXISTS portfolios (
     FOREIGN KEY (ticker_id) REFERENCES tickers (ticker_id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS portfolios_idx01 ON portfolios (stock_id, ticker_id);
+--
+-- The same ticker_id for multiple days is possible in for example a weekend when a ticker is not updated.
+-- CREATE UNIQUE INDEX IF NOT EXISTS portfolios_idx01 ON portfolios (stock_id, ticker_id);
 CREATE UNIQUE INDEX IF NOT EXISTS portfolios_idx02 ON portfolios (stock_id, portfolio_date);
 CREATE UNIQUE INDEX IF NOT EXISTS portfolios_idx03 ON portfolios (portfolio_id); 
