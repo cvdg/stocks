@@ -1,4 +1,3 @@
-from datetime import date, timedelta
 import logging
 import os
 from typing import List
@@ -9,57 +8,20 @@ import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
+SELECT_STOCK_SYMBOLS = """
+  SELECT stock_symbol
+    FROM stocks
+   WHERE stock_active = TRUE
+ORDER BY stock_id
+"""
 
-def stocks(url: str) -> List[str]:
-    symbols = []
-    with psycopg.connect(url) as conn:
-        with conn.cursor() as curr:
-            curr.execute(
-                "SELECT stock_symbol FROM stocks WHERE stock_active = TRUE ORDER BY stock_id"
-            )
-            rows = curr.fetchall()
-            for row in rows:
-                symbol = row[0]
-                # print(f"{symbol=}")
-                symbols.append(symbol)
-            curr.close()
-        conn.commit()
-        conn.close()
-    return symbols
+SELECT_STOCK_SYMBOL_BY_ID = """
+    SELECT stock_id
+      FROM stocks
+     WHERE stock_symbol = %s
+"""
 
-
-def __get_stock_id(url: str, symbol: str) -> None:
-    with psycopg.connect(url) as conn:
-        with conn.cursor() as curr:
-            curr.execute(
-                "SELECT stock_id FROM stocks WHERE stock_symbol = %s", (symbol,)
-            )
-            result = curr.fetchone()
-            if not result:
-                logger.error(f"stock_id for symbol: {symbol} not found")
-            else:
-                stock_id = result[0]
-        conn.commit()
-    return stock_id
-
-
-def __tickers_upsert(row, url: str, symbol: str, stock_id: int) -> None:
-    """
-    Slow!
-    For each row a new connection is made and a commit is done.
-    """
-    with psycopg.connect(url) as conn:
-        with conn.cursor() as curr:
-            day = row["Date"].date().isoformat()
-            open = float(row["Open"])
-            high = float(row["High"])
-            low = float(row["Low"])
-            close = float(row["Close"])
-            volume = float(row["Volume"])
-            dividends = float(row["Dividends"])
-            splits = float(row["Stock Splits"])
-            curr.execute(
-                """
+UPSERT_TICKERS = """
 INSERT INTO tickers (
     stock_id,
     ticker_date,
@@ -79,7 +41,57 @@ SET ticker_open      = excluded.ticker_open,
     ticker_volume    = excluded.ticker_volume,
     ticker_dividends = excluded.ticker_dividends,
     ticker_splits    = excluded.ticker_splits
-""",
+"""
+
+
+def stocks(url: str) -> List[str]:
+    symbols = []
+    with psycopg.connect(url) as conn:
+        with conn.cursor() as curr:
+            curr.execute(SELECT_STOCK_SYMBOLS)
+            rows = curr.fetchall()
+            for row in rows:
+                symbol = row[0]
+                # print(f"{symbol=}")
+                symbols.append(symbol)
+            curr.close()
+        conn.commit()
+        conn.close()
+    return symbols
+
+
+def __get_stock_id(url: str, symbol: str) -> None:
+    with psycopg.connect(url) as conn:
+        with conn.cursor() as curr:
+            curr.execute(SELECT_STOCK_SYMBOL_BY_ID, (symbol,))
+            result = curr.fetchone()
+            if not result:
+                logger.error(f"stock_id for symbol: {symbol} not found")
+            else:
+                stock_id = result[0]
+        conn.commit()
+    return stock_id
+
+
+def __tickers_upsert(row, url: str, symbol: str, stock_id: int) -> None:
+    """
+    Slow!
+    For each row a new connection is made and a commit is done.
+
+    FIXME
+    """
+    with psycopg.connect(url) as conn:
+        with conn.cursor() as curr:
+            day = row["Date"].date().isoformat()
+            open = float(row["Open"])
+            high = float(row["High"])
+            low = float(row["Low"])
+            close = float(row["Close"])
+            volume = float(row["Volume"])
+            dividends = float(row["Dividends"])
+            splits = float(row["Stock Splits"])
+            curr.execute(
+                UPSERT_TICKERS,
                 (
                     stock_id,
                     day,
